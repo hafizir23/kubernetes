@@ -14,7 +14,7 @@ Platform:
 - 1 EC2 Ubuntu `t2.micro` atau `t3.micro`
 - Kubernetes ringan menggunakan K3s
 - Traefik Ingress bawaan K3s
-- Fallback Traefik ringan di `k8s/06-traefik-simple.yaml` jika installer Traefik bawaan K3s gagal di instance kecil
+- Fallback Traefik ringan di `optional/traefik-simple.yaml` jika installer Traefik bawaan K3s gagal di instance kecil
 - ServiceLB bawaan K3s
 - Metrics Server bawaan K3s untuk HPA
 
@@ -34,8 +34,14 @@ Platform:
     ├── 02-deployment.yaml
     ├── 03-service.yaml
     ├── 04-ingress.yaml
-    ├── 05-hpa.yaml
-    └── 06-traefik-simple.yaml
+    └── 05-hpa.yaml
+```
+
+Folder opsional:
+
+```text
+optional/
+└── traefik-simple.yaml
 ```
 
 ## Latar Belakang
