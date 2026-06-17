@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: greencampus-service
+  namespace: sdg-greencampus
+  labels:
+    app: greencampus-web
+spec:
+  type: ClusterIP
+  selector:
+    app: greencampus-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

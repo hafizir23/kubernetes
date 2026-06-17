@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greencampus-web
+  namespace: sdg-greencampus
+  labels:
+    app: greencampus-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: greencampus-web
+  template:
+    metadata:
+      labels:
+        app: greencampus-web
+    spec:
+      containers:
+        - name: web
+          image: python:3.12-alpine
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: greencampus-config
+          command:
+            - /bin/sh
+            - -c
+            - |
+              cat > /tmp/app.py <<'PY'
+              import hashlib
+              import os
+              import socket
+              from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+              APP_NAME = os.getenv("APP_NAME", "GreenCampus SDG Dashboard")
+              SDG_THEME = os.getenv("SDG_THEME", "SDG 7, SDG 11, SDG 13")
+              MESSAGE = os.getenv("CAMPAIGN_MESSAGE", "Dukung kampus berkelanjutan.")
+              HOSTNAME = socket.gethostname()
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      seed = f"{HOSTNAME}-{self.path}".encode()
+                      digest = seed
+                      for _ in range(90000):
+                          digest = hashlib.sha256(digest).digest()
+
+                      body = f"""<!doctype html>
+              <html lang="id">
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>{APP_NAME}</title>
+                <style>
+                  body {{ margin: 0; font-family: Arial, sans-serif; color: #173024; background: #f2f7f4; }}
+                  main {{ max-width: 920px; margin: 0 auto; padding: 48px 20px; }}
+                  .hero {{ background: #ffffff; border: 1px solid #d8e6dd; border-radius: 8px; padding: 32px; }}
+                  h1 {{ margin: 0 0 12px; font-size: 36px; }}
+                  .tag {{ color: #0f7b52; font-weight: 700; margin-bottom: 20px; }}
+                  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px; }}
+                  .metric {{ background: #e9f3ed; border-radius: 8px; padding: 18px; }}
+                  .metric strong {{ display: block; font-size: 28px; color: #0f7b52; }}
+                  code {{ background: #173024; color: #ffffff; padding: 3px 6px; border-radius: 4px; }}
+                </style>
+              </head>
+              <body>
+                <main>
+                  <section class="hero">
+                    <p class="tag">{SDG_THEME}</p>
+                    <h1>{APP_NAME}</h1>
+                    <p>{MESSAGE}</p>
+                    <div class="grid">
+                      <div class="metric"><strong>18%</strong>Target penghematan listrik bulanan.</div>
+                      <div class="metric"><strong>320 kg</strong>Estimasi CO2 yang dapat dikurangi.</div>
+                      <div class="metric"><strong>4 aksi</strong>Matikan lampu, kurangi AC, gunakan transportasi publik, daur ulang.</div>
+                    </div>
+                    <p>HOSTNAME: <code>{HOSTNAME}</code></p>
+                  </section>
+                </main>
+              </body>
+              </html>"""
+                      self.send_response(200)
+                      self.send_header("Content-Type", "text/html; charset=utf-8")
+                      self.end_headers()
+                      self.wfile.write(body.encode())
+
+                  def log_message(self, format, *args):
+                      return
+
+              ThreadingHTTPServer(("0.0.0.0", 80), Handler).serve_forever()
+              PY
+              python /tmp/app.py
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

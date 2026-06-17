@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greencampus-config
+  namespace: sdg-greencampus
+data:
+  APP_NAME: "GreenCampus SDG Dashboard"
+  SDG_THEME: "SDG 7, SDG 11, SDG 13"
+  CAMPAIGN_MESSAGE: "Kurangi penggunaan energi, pantau aksi hijau, dan dukung kampus berkelanjutan."
