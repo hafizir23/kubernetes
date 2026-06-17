@@ -154,6 +154,8 @@ spec:
                     margin-top: 20px;
                   }}
                   .button {{
+                    border: 0;
+                    cursor: pointer;
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
@@ -162,6 +164,8 @@ spec:
                     border-radius: 8px;
                     font-weight: 700;
                     text-decoration: none;
+                    font-family: inherit;
+                    font-size: 14px;
                   }}
                   .primary {{
                     color: #ffffff;
@@ -287,6 +291,22 @@ spec:
                     padding: 11px 0;
                     border-bottom: 1px solid #e2ebe6;
                   }}
+                  .focus {{
+                    outline: 3px solid #78c49b;
+                    outline-offset: 3px;
+                  }}
+                  .insight {{
+                    margin-top: 18px;
+                    padding: 14px;
+                    border: 1px solid #cfe0d6;
+                    border-radius: 8px;
+                    background: #f4faf6;
+                  }}
+                  .insight strong {{
+                    display: block;
+                    margin-bottom: 6px;
+                    color: #11764f;
+                  }}
                   @media (max-width: 900px) {{
                     .hero, .layout {{
                       grid-template-columns: 1fr;
@@ -336,8 +356,12 @@ spec:
                       <h1>Dashboard kampus untuk energi bersih dan aksi iklim.</h1>
                       <p>{MESSAGE} Aplikasi ini menampilkan indikator hemat energi, program aksi hijau, dan status deployment Kubernetes secara real time per pod.</p>
                       <div class="hero-actions">
-                        <a class="button primary" href="#program">Lihat Program</a>
-                        <a class="button secondary" href="#infra">Status Cluster</a>
+                        <button class="button primary" type="button" onclick="showProgram()">Lihat Program</button>
+                        <button class="button secondary" type="button" onclick="showCluster()">Status Cluster</button>
+                      </div>
+                      <div class="insight" id="insight">
+                        <strong>Ringkasan</strong>
+                        Pilih tombol di atas untuk melihat fokus program SDGs atau status cluster Kubernetes yang sedang melayani aplikasi ini.
                       </div>
                     </div>
                     <aside class="panel score">
@@ -410,6 +434,39 @@ spec:
                     </table>
                   </section>
                 </main>
+                <script>
+                  function clearFocus() {{
+                    document.querySelectorAll(".focus").forEach(function (node) {{
+                      node.classList.remove("focus");
+                    }});
+                  }}
+
+                  function setInsight(title, text) {{
+                    document.getElementById("insight").innerHTML = "<strong>" + title + "</strong>" + text;
+                  }}
+
+                  function showProgram() {{
+                    clearFocus();
+                    var target = document.getElementById("program");
+                    target.classList.add("focus");
+                    target.scrollIntoView({{ behavior: "smooth", block: "center" }});
+                    setInsight(
+                      "Program SDGs Aktif",
+                      "GreenCampus menjalankan audit energi, transportasi rendah emisi, bank sampah digital, dan kampanye climate action. Bagian program sedang disorot di bawah."
+                    );
+                  }}
+
+                  function showCluster() {{
+                    clearFocus();
+                    var target = document.getElementById("infra");
+                    target.classList.add("focus");
+                    target.scrollIntoView({{ behavior: "smooth", block: "center" }});
+                    setInsight(
+                      "Status Cluster Kubernetes",
+                      "Request ini dilayani oleh pod <code>{HOSTNAME}</code> dengan Request ID <code>{request_id}</code>. Service, Ingress, dan HPA aktif untuk mendukung load balancing dan autoscaling."
+                    );
+                  }}
+                </script>
               </body>
               </html>"""
                       self.send_response(200)
