@@ -40,10 +40,18 @@ spec:
 
               class Handler(BaseHTTPRequestHandler):
                   def do_GET(self):
+                      if self.path == "/healthz":
+                          self.send_response(200)
+                          self.send_header("Content-Type", "text/plain")
+                          self.end_headers()
+                          self.wfile.write(b"ok")
+                          return
+
                       seed = f"{HOSTNAME}-{self.path}".encode()
                       digest = seed
                       for _ in range(90000):
                           digest = hashlib.sha256(digest).digest()
+                      request_id = digest.hex()[:12]
 
                       body = f"""<!doctype html>
               <html lang="id">
@@ -52,29 +60,354 @@ spec:
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>{APP_NAME}</title>
                 <style>
-                  body {{ margin: 0; font-family: Arial, sans-serif; color: #173024; background: #f2f7f4; }}
-                  main {{ max-width: 920px; margin: 0 auto; padding: 48px 20px; }}
-                  .hero {{ background: #ffffff; border: 1px solid #d8e6dd; border-radius: 8px; padding: 32px; }}
-                  h1 {{ margin: 0 0 12px; font-size: 36px; }}
-                  .tag {{ color: #0f7b52; font-weight: 700; margin-bottom: 20px; }}
-                  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px; }}
-                  .metric {{ background: #e9f3ed; border-radius: 8px; padding: 18px; }}
-                  .metric strong {{ display: block; font-size: 28px; color: #0f7b52; }}
-                  code {{ background: #173024; color: #ffffff; padding: 3px 6px; border-radius: 4px; }}
+                  * {{ box-sizing: border-box; }}
+                  body {{
+                    margin: 0;
+                    font-family: Inter, Arial, sans-serif;
+                    color: #17211b;
+                    background: #eef3f0;
+                  }}
+                  .topbar {{
+                    position: sticky;
+                    top: 0;
+                    z-index: 2;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    padding: 14px 28px;
+                    background: #ffffff;
+                    border-bottom: 1px solid #dbe5df;
+                  }}
+                  .brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    font-weight: 800;
+                  }}
+                  .mark {{
+                    width: 34px;
+                    height: 34px;
+                    display: grid;
+                    place-items: center;
+                    border-radius: 8px;
+                    color: #ffffff;
+                    background: #11764f;
+                  }}
+                  .status {{
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    color: #42524a;
+                    font-size: 13px;
+                  }}
+                  .pill {{
+                    padding: 7px 10px;
+                    border: 1px solid #d5e2da;
+                    border-radius: 999px;
+                    background: #f7faf8;
+                  }}
+                  main {{
+                    max-width: 1180px;
+                    margin: 0 auto;
+                    padding: 30px 20px 44px;
+                  }}
+                  .hero {{
+                    display: grid;
+                    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+                    gap: 22px;
+                    align-items: stretch;
+                    margin-bottom: 22px;
+                  }}
+                  .panel {{
+                    background: #ffffff;
+                    border: 1px solid #dbe5df;
+                    border-radius: 8px;
+                    padding: 24px;
+                    box-shadow: 0 10px 24px rgba(20, 48, 34, 0.06);
+                  }}
+                  .eyebrow {{
+                    margin: 0 0 12px;
+                    color: #11764f;
+                    font-weight: 800;
+                    letter-spacing: 0;
+                    font-size: 13px;
+                  }}
+                  h1 {{
+                    margin: 0;
+                    max-width: 720px;
+                    font-size: 42px;
+                    line-height: 1.08;
+                  }}
+                  h2 {{
+                    margin: 0 0 16px;
+                    font-size: 20px;
+                  }}
+                  p {{
+                    color: #42524a;
+                    line-height: 1.6;
+                  }}
+                  .hero-actions {{
+                    display: flex;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                    margin-top: 20px;
+                  }}
+                  .button {{
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    min-height: 40px;
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    text-decoration: none;
+                  }}
+                  .primary {{
+                    color: #ffffff;
+                    background: #11764f;
+                  }}
+                  .secondary {{
+                    color: #173024;
+                    background: #eef6f1;
+                    border: 1px solid #cfe0d6;
+                  }}
+                  .score {{
+                    min-height: 100%;
+                    display: grid;
+                    gap: 16px;
+                  }}
+                  .score-value {{
+                    font-size: 54px;
+                    line-height: 1;
+                    color: #11764f;
+                    font-weight: 900;
+                  }}
+                  .bar {{
+                    width: 100%;
+                    height: 12px;
+                    overflow: hidden;
+                    border-radius: 999px;
+                    background: #dfebe5;
+                  }}
+                  .bar span {{
+                    display: block;
+                    width: 68%;
+                    height: 100%;
+                    background: #11764f;
+                  }}
+                  .grid {{
+                    display: grid;
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    gap: 16px;
+                    margin-bottom: 22px;
+                  }}
+                  .metric strong {{
+                    display: block;
+                    margin-bottom: 8px;
+                    color: #11764f;
+                    font-size: 30px;
+                  }}
+                  .layout {{
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) 340px;
+                    gap: 22px;
+                  }}
+                  .programs {{
+                    display: grid;
+                    gap: 12px;
+                  }}
+                  .program {{
+                    display: grid;
+                    grid-template-columns: 44px minmax(0, 1fr) auto;
+                    gap: 14px;
+                    align-items: center;
+                    padding: 14px;
+                    border: 1px solid #dbe5df;
+                    border-radius: 8px;
+                    background: #fbfdfc;
+                  }}
+                  .icon {{
+                    width: 44px;
+                    height: 44px;
+                    display: grid;
+                    place-items: center;
+                    border-radius: 8px;
+                    background: #e3f2ea;
+                    color: #11764f;
+                    font-weight: 900;
+                  }}
+                  .program h3 {{
+                    margin: 0 0 3px;
+                    font-size: 15px;
+                  }}
+                  .program p {{
+                    margin: 0;
+                    font-size: 13px;
+                  }}
+                  .badge {{
+                    white-space: nowrap;
+                    border-radius: 999px;
+                    padding: 7px 10px;
+                    color: #0f5135;
+                    background: #e6f4ec;
+                    font-size: 12px;
+                    font-weight: 800;
+                  }}
+                  table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 14px;
+                  }}
+                  th, td {{
+                    text-align: left;
+                    padding: 12px 8px;
+                    border-bottom: 1px solid #e2ebe6;
+                  }}
+                  th {{
+                    color: #617169;
+                    font-size: 12px;
+                  }}
+                  code {{
+                    word-break: break-word;
+                    background: #17211b;
+                    color: #ffffff;
+                    padding: 4px 7px;
+                    border-radius: 5px;
+                  }}
+                  .infra {{
+                    display: grid;
+                    gap: 10px;
+                    margin-top: 12px;
+                  }}
+                  .infra div {{
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 14px;
+                    padding: 11px 0;
+                    border-bottom: 1px solid #e2ebe6;
+                  }}
+                  @media (max-width: 900px) {{
+                    .hero, .layout {{
+                      grid-template-columns: 1fr;
+                    }}
+                    .grid {{
+                      grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }}
+                  }}
+                  @media (max-width: 620px) {{
+                    .topbar {{
+                      align-items: flex-start;
+                      flex-direction: column;
+                      padding: 14px 18px;
+                    }}
+                    main {{
+                      padding: 20px 14px 34px;
+                    }}
+                    h1 {{
+                      font-size: 32px;
+                    }}
+                    .grid {{
+                      grid-template-columns: 1fr;
+                    }}
+                    .program {{
+                      grid-template-columns: 40px minmax(0, 1fr);
+                    }}
+                    .program .badge {{
+                      grid-column: 2;
+                      width: max-content;
+                    }}
+                  }}
                 </style>
               </head>
               <body>
+                <header class="topbar">
+                  <div class="brand"><span class="mark">G</span><span>{APP_NAME}</span></div>
+                  <div class="status">
+                    <span class="pill">Kubernetes Ready</span>
+                    <span class="pill">HPA Enabled</span>
+                    <span class="pill">Ingress Port 80</span>
+                  </div>
+                </header>
                 <main>
                   <section class="hero">
-                    <p class="tag">{SDG_THEME}</p>
-                    <h1>{APP_NAME}</h1>
-                    <p>{MESSAGE}</p>
-                    <div class="grid">
-                      <div class="metric"><strong>18%</strong>Target penghematan listrik bulanan.</div>
-                      <div class="metric"><strong>320 kg</strong>Estimasi CO2 yang dapat dikurangi.</div>
-                      <div class="metric"><strong>4 aksi</strong>Matikan lampu, kurangi AC, gunakan transportasi publik, daur ulang.</div>
+                    <div class="panel">
+                      <p class="eyebrow">{SDG_THEME}</p>
+                      <h1>Dashboard kampus untuk energi bersih dan aksi iklim.</h1>
+                      <p>{MESSAGE} Aplikasi ini menampilkan indikator hemat energi, program aksi hijau, dan status deployment Kubernetes secara real time per pod.</p>
+                      <div class="hero-actions">
+                        <a class="button primary" href="#program">Lihat Program</a>
+                        <a class="button secondary" href="#infra">Status Cluster</a>
+                      </div>
                     </div>
-                    <p>HOSTNAME: <code>{HOSTNAME}</code></p>
+                    <aside class="panel score">
+                      <div>
+                        <p class="eyebrow">Skor Keberlanjutan Bulan Ini</p>
+                        <div class="score-value">68%</div>
+                      </div>
+                      <div class="bar"><span></span></div>
+                      <p>Target menuju 80% dicapai melalui penghematan listrik, kampanye transportasi publik, dan pengurangan sampah plastik.</p>
+                    </aside>
+                  </section>
+
+                  <section class="grid">
+                    <div class="panel metric"><strong>18%</strong>Target hemat energi bulanan</div>
+                    <div class="panel metric"><strong>320 kg</strong>Estimasi pengurangan CO2</div>
+                    <div class="panel metric"><strong>1.240</strong>Mahasiswa ikut kampanye</div>
+                    <div class="panel metric"><strong>5</strong>Replica maksimal oleh HPA</div>
+                  </section>
+
+                  <section class="layout">
+                    <div class="panel" id="program">
+                      <h2>Program Aksi GreenCampus</h2>
+                      <div class="programs">
+                        <div class="program">
+                          <div class="icon">E</div>
+                          <div><h3>Audit Energi Ruang Kelas</h3><p>Memantau penggunaan lampu, proyektor, dan AC pada jam kuliah.</p></div>
+                          <span class="badge">SDG 7</span>
+                        </div>
+                        <div class="program">
+                          <div class="icon">T</div>
+                          <div><h3>Transportasi Rendah Emisi</h3><p>Mendorong carpool, bus kampus, sepeda, dan jalan kaki.</p></div>
+                          <span class="badge">SDG 11</span>
+                        </div>
+                        <div class="program">
+                          <div class="icon">R</div>
+                          <div><h3>Bank Sampah Digital</h3><p>Mengukur partisipasi daur ulang kertas, botol, dan kardus.</p></div>
+                          <span class="badge">SDG 12</span>
+                        </div>
+                        <div class="program">
+                          <div class="icon">C</div>
+                          <div><h3>Kampanye Climate Action</h3><p>Publikasi target pengurangan emisi dan laporan aksi mingguan.</p></div>
+                          <span class="badge">SDG 13</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <aside class="panel" id="infra">
+                      <h2>Status Infrastruktur</h2>
+                      <div class="infra">
+                        <div><span>Pod aktif</span><strong>autoscaled</strong></div>
+                        <div><span>Service</span><strong>ClusterIP</strong></div>
+                        <div><span>Ingress</span><strong>Traefik</strong></div>
+                        <div><span>HPA target</span><strong>CPU 50%</strong></div>
+                        <div><span>Hostname pod</span><code>{HOSTNAME}</code></div>
+                        <div><span>Request ID</span><code>{request_id}</code></div>
+                      </div>
+                    </aside>
+                  </section>
+
+                  <section class="panel" style="margin-top:22px;">
+                    <h2>Indikator Monitoring SDGs</h2>
+                    <table>
+                      <thead><tr><th>Indikator</th><th>Nilai</th><th>Status</th><th>Tujuan</th></tr></thead>
+                      <tbody>
+                        <tr><td>Penghematan listrik</td><td>18%</td><td>On track</td><td>SDG 7</td></tr>
+                        <tr><td>Pengurangan CO2</td><td>320 kg</td><td>Baik</td><td>SDG 13</td></tr>
+                        <tr><td>Partisipasi mahasiswa</td><td>1.240</td><td>Meningkat</td><td>SDG 11</td></tr>
+                        <tr><td>Daur ulang mingguan</td><td>76 kg</td><td>Perlu ditingkatkan</td><td>SDG 12</td></tr>
+                      </tbody>
+                    </table>
                   </section>
                 </main>
               </body>
